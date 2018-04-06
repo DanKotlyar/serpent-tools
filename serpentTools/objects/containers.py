@@ -12,7 +12,8 @@ from collections import OrderedDict
 
 from matplotlib import pyplot
 
-from numpy import array, arange, unique, log, divide, ones_like, hstack
+from numpy import (array, arange, unique, log, divide, ones_like, hstack, flip,
+                   asfortranarray)
 
 from serpentTools.plot import cartMeshPlot, plot, magicPlotDocDecorator
 from serpentTools.objects import NamedObject, convertVariableName
@@ -255,6 +256,12 @@ class DetectorBase(NamedObject):
 
     def _isReshaped(self):
         raise NotImplementedError
+
+    def addGridData(self, key, data):
+        """Add detector grid data to the grids dictionary"""
+        key = key.upper()
+        toStore = data[::-1, ::-1] if key == 'E' else data
+        self.grids[key] = asfortranarray(toStore)
 
     def slice(self, fixed, data='tallies'):
         """
@@ -578,9 +585,11 @@ class DetectorBase(NamedObject):
 
     def _getGrid(self, qty):
         if qty[0].upper() in self.grids:
-            grid = self.grids[qty[0].upper()]
-            lowBounds = grid[:, 0]
-            return hstack((lowBounds, grid[-1, 1]))
+            key = qty[0].upper()
+            grid = self.grids[key]
+            lCol, uRow, uCol = (0, -1, 1) if key != 'E' else (2, 0, 0)
+            lowBounds = grid[:, lCol]
+            return hstack((lowBounds, grid[uRow, uCol]))
         if qty not in self.indexes:
             raise KeyError("No index {} found on detector. Bin indexes: {}"
                            .format(qty, ', '.join(self.indexes.keys())))
@@ -661,12 +670,22 @@ class Detector(DetectorBase):
         self.errors = self.bins[:, 11].reshape(shape)
         if self.bins.shape[1] == 13:
             self.scores = self.bins[:, 12].reshape(shape)
+        if 'energy' in self.indexes:
+            self.__flipAlongEnergy()
         self._map = {'tallies': self.tallies, 'errors': self.errors,
                      'scores': self.scores}
         debug('Done')
         self.__reshaped = True
         return shape
 
+    def __flipAlongEnergy(self):
+        orderedKeys = list(self.indexes.keys())
+        energyAxis = orderedKeys.index('energy')
+        debug("Transposing tally data along energy axis""")
+        self.tallies = flip(self.tallies, energyAxis)
+        self.errors = flip(self.errors, energyAxis)
+        if self.scores is not None:
+            self.scores = flip(self.scores, energyAxis)
 
 class BranchContainer(object):
     """

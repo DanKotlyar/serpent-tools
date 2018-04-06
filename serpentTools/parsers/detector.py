@@ -1,7 +1,7 @@
 """Parser responsible for reading the ``*det<n>.m`` files"""
 
 from six import iteritems
-from numpy import asfortranarray, empty
+from numpy import empty
 
 from serpentTools.engines import KeywordParser
 from serpentTools.objects.containers import Detector
@@ -77,7 +77,7 @@ class DetectorReader(BaseReader):
             return
         # detector has already been defined, this must be a mesh
         detector = self.detectors[detName]
-        detector.grids[binType] = asfortranarray(data)
+        detector.addGridData(binType, data)
         debug('Added bin data {} to detector {}'
               .format(binType, detName))
 
