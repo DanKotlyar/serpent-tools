@@ -378,10 +378,10 @@ class DetectorBase(NamedObject):
             )
         elif len(slicedTallies.shape) == 1:
             slicedTallies = slicedTallies.reshape(slicedTallies.size, 1)
-        lowerE = self.grids['E'][:, 0]
+        lowerE = self.grids['E'][:, 2]
         if normalize:
             lethBins = log(
-                divide(self.grids['E'][:, -1], lowerE))
+                divide(self.grids['E'][:, 0], lowerE))
             for indx in range(slicedTallies.shape[1]):
                 scratch = divide(slicedTallies[:, indx], lethBins)
                 slicedTallies[:, indx] = scratch / scratch.max() 
